@@ -1,0 +1,8 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+WORKDIR /src
+COPY backend/src/Admission.Api/Admission.Api.csproj backend/src/Admission.Api/
+COPY backend/tests/Admission.Tests/Admission.Tests.csproj backend/tests/Admission.Tests/
+RUN dotnet restore backend/tests/Admission.Tests/Admission.Tests.csproj
+COPY backend/src/ backend/src/
+COPY backend/tests/ backend/tests/
+ENTRYPOINT ["dotnet","test","backend/tests/Admission.Tests/Admission.Tests.csproj","-c","Release","--logger","console;verbosity=normal"]
