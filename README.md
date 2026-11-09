@@ -1,6 +1,6 @@
-# School Admission System
+﻿# School Admission System
 
-A school admission portal with first-come-first-served seat holds, confirmation, cancellation, expiry and a responsive Bengali React UI. Backend: .NET 8 minimal API + PostgreSQL. Frontend: React 18 + TypeScript + Vite.
+A school admission portal with first-come-first-served seat holds, confirmation, cancellation, expiry and a responsive React UI. Backend: .NET 8 minimal API + PostgreSQL. Frontend: React 18 + TypeScript + Vite.
 
 ## Run with Docker
 
@@ -36,3 +36,4 @@ For a local frontend build, with Node.js installed: `cd frontend && npm install 
 Seat allocation is serialized using a PostgreSQL row lock on the target class. Capacity checks and hold insertion run in the same transaction, so separate API processes sharing the database cannot allocate beyond capacity. An expiry worker transitions elapsed holds to `EXPIRED`; read and capacity queries also exclude elapsed holds directly, so seat availability does not depend on the worker's polling interval.
 
 Input validation failures return 4xx. Database availability errors return 503 with a readable message. All timestamps use UTC.
+
