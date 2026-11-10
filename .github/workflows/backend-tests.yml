@@ -1,0 +1,24 @@
+name: Backend tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Run backend integration tests with PostgreSQL
+        run: docker compose --profile test run --build --rm backend-tests
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: artifacts/test-results/admission-tests.trx
+          if-no-files-found: warn
