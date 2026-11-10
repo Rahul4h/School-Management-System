@@ -54,7 +54,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile.test
     environment:
-      DATABASE_URL: ${DATABASE_URL:-Host=db;Port=5432;Database=admission;Username=admission;Password=${POSTGRES_PASSWORD:-admission_dev_only};Timeout=5;Command Timeout=15;Maximum Pool Size=50}
+      DATABASE_URL: ${DATABASE_URL:-Host=db;Port=5432;Database=admission;Username=admission;Password=${POSTGRES_PASSWORD:-admission_dev_only};Timeout=30;Command Timeout=120;Maximum Pool Size=50}
     depends_on:
       db:
         condition: service_healthy
