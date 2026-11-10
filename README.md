@@ -1,39 +1,45 @@
-﻿# School Admission System
+# School Admission System
 
-A school admission portal with first-come-first-served seat holds, confirmation, cancellation, expiry and a responsive React UI. Backend: .NET 8 minimal API + PostgreSQL. Frontend: React 18 + TypeScript + Vite.
+First-come-first-served school admission portal built with React 18, .NET 8 Minimal API, PostgreSQL, and Nginx. Each class/shift has its own seat capacity. PostgreSQL row locks protect the capacity invariant across multiple API processes.
 
 ## Run with Docker
 
-Docker Engine/Desktop with Compose is the only required host dependency.
+Docker Engine/Desktop with Compose is the only host requirement. From the repository root:
 
 ```sh
 docker compose up --build
 ```
 
-Open the UI at **http://localhost:5173**. API: **http://localhost:8080** (`/health` for health status). PostgreSQL data persists in the `postgres_data` volume; `docker compose down` keeps it. To intentionally reset data, use `docker compose down -v`.
+Open the UI at **http://localhost:5173**. The API is available at **http://localhost:8080** (`/health`). Nginx serves the frontend and can proxy `/api/*` to the backend. PostgreSQL data persists in the `postgres_data` volume. `docker compose down` keeps the data; `docker compose down -v` deletes it.
 
-Optional configuration:
+The default database password is for local assignment review only. Optional `.env` settings:
 
-- `HOLD_DURATION_SECONDS=600` sets the hold period.
-- `VITE_API_BASE_URL=http://localhost:8080` sets the API origin embedded in the frontend build. Rebuild after changing it.
-- `DATABASE_URL` can override the API PostgreSQL connection string.
+- `DATABASE_URL`: backend PostgreSQL connection string.
+- `POSTGRES_PASSWORD`: Compose database password, used when `DATABASE_URL` is not overridden.
+- `HOLD_DURATION_SECONDS`: hold period, default `600`.
+- `FRONTEND_ORIGIN`: allowed browser origin, default `http://localhost:5173`.
+- `VITE_API_BASE_URL`: API URL embedded in the frontend build, default `http://localhost:8080`. Rebuild after changing it.
 
-The UI identifies a student by their 17 digit registration number in `X-Student-Id`. The ID is stored in browser local storage for return visits.
+## Admission flow
+
+1. Enter a 17-digit student registration number and name, then apply to a class.
+2. The API atomically reserves one seat for `HOLD_DURATION_SECONDS`. Other applicants cannot take that seat during the hold.
+3. Click **Pay admission fee** before the countdown expires. As specified in the assignment, this action simulates successful payment and confirms the admission; no real payment gateway is used.
+4. If the hold expires first, the seat is released automatically and the UI shows the expired state without a page reload.
+
+The student's name is stored with the hold for display. The registration number remains the API identity header `X-Student-Id`; login is out of scope per the assignment.
 
 ## Tests
 
-The backend test suite contains API integration tests, including concurrent requests against PostgreSQL. It requires Docker because it provisions an isolated PostgreSQL test container.
+Backend integration tests include a concurrent seat-capacity test and require Docker for PostgreSQL:
 
 ```sh
 docker compose --profile test build backend-tests
 docker compose --profile test run --rm backend-tests
 ```
 
-For a local frontend build, with Node.js installed: `cd frontend && npm install && npm run build`.
+For a local frontend production build: `cd frontend && npm ci && npm run build`.
 
 ## Design notes
 
-Seat allocation is serialized using a PostgreSQL row lock on the target class. Capacity checks and hold insertion run in the same transaction, so separate API processes sharing the database cannot allocate beyond capacity. An expiry worker transitions elapsed holds to `EXPIRED`; read and capacity queries also exclude elapsed holds directly, so seat availability does not depend on the worker's polling interval.
-
-Input validation failures return 4xx. Database availability errors return 503 with a readable message. All timestamps use UTC.
-
+Seat allocation, confirmation, and cancellation lock the class row first, so separate API instances sharing PostgreSQL follow one lock order. Capacity and read queries exclude expired holds immediately; a background worker also persists the `EXPIRED` state. Schema initialization upgrades the earlier sample database without dropping its data.

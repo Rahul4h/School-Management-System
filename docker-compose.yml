@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: admission
       POSTGRES_USER: admission
-      POSTGRES_PASSWORD: admission
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admission_dev_only}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,9 +19,11 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     environment:
-      DATABASE_URL: Host=db;Port=5432;Database=admission;Username=admission;Password=admission
+      DATABASE_URL: ${DATABASE_URL:-Host=db;Port=5432;Database=admission;Username=admission;Password=${POSTGRES_PASSWORD:-admission_dev_only};Timeout=5;Command Timeout=15;Maximum Pool Size=50}
       HOLD_DURATION_SECONDS: ${HOLD_DURATION_SECONDS:-600}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
       ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
     ports:
       - "8080:8080"
     depends_on:
@@ -40,6 +42,11 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   backend-tests:
     profiles: ["test"]
@@ -47,7 +54,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile.test
     environment:
-      DATABASE_URL: Host=db;Port=5432;Database=admission;Username=admission;Password=admission
+      DATABASE_URL: ${DATABASE_URL:-Host=db;Port=5432;Database=admission;Username=admission;Password=${POSTGRES_PASSWORD:-admission_dev_only};Timeout=5;Command Timeout=15;Maximum Pool Size=50}
     depends_on:
       db:
         condition: service_healthy
