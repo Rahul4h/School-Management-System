@@ -152,7 +152,7 @@ app.MapGet("/me/holds", async (HttpRequest request) =>
 
 app.Run();
 
-static bool ValidStudent(string student) => Regex.IsMatch(student ?? "", @"^\d{17}$", RegexOptions.CultureInvariant);
+static bool ValidStudent(string student) => Regex.IsMatch(student ?? "", @"^[0-9]{17}$", RegexOptions.CultureInvariant);
 static async Task<string?> LookupClass(NpgsqlConnection connection, NpgsqlTransaction transaction, string id)
 {
     await using var cmd = new NpgsqlCommand("SELECT class_id FROM holds WHERE id=@id", connection, transaction); cmd.Parameters.AddWithValue("id", id); return (string?)await cmd.ExecuteScalarAsync();

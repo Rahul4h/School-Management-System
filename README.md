@@ -7,12 +7,12 @@ First-come-first-served school admission portal built with React 18, .NET 8 Mini
 Docker Engine/Desktop with Compose is the only host requirement. From the repository root:
 
 ```sh
-docker compose up --build
+docker compose up
 ```
 
 Open the UI at **http://localhost:5173**. The API is available at **http://localhost:8080** (`/health`). Nginx serves the frontend and can proxy `/api/*` to the backend. PostgreSQL data persists in the `postgres_data` volume. `docker compose down` keeps the data; `docker compose down -v` deletes it.
 
-The default database password is for local assignment review only. Optional `.env` settings:
+Compose builds the images automatically on first start; use `docker compose up --build` after changing source files. The default database password is for local assignment review only. Optional `.env` settings:
 
 - `DATABASE_URL`: backend PostgreSQL connection string.
 - `POSTGRES_PASSWORD`: Compose database password, used when `DATABASE_URL` is not overridden.
