@@ -1,6 +1,6 @@
 # Backend test report
 
-**Result:** Passed — 4 tests, 0 failures  
+**Result:** Passed - 4 tests, 0 failures  
 **Executed:** 2026-11-10 (UTC)  
 **Command:** `docker compose --profile test run --build --rm backend-tests`
 
