@@ -1,3 +1,5 @@
 # AI usage
 
-OpenAI Codex assisted with the .NET API, PostgreSQL transaction flow, React UI, Docker/Nginx setup, tests, and documentation. During implementation, an earlier Windows PowerShell encoding issue replaced Bengali text with question marks; this was found by inspecting the saved source and corrected. The seat-capacity flow was reviewed to ensure holds, confirmation, and cancellation lock the class row in a consistent order. The React production build and Compose configuration were checked; backend image/tests could not be run because the Docker Desktop Linux engine was unavailable in this environment.
+OpenAI Codex assisted with the .NET API and PostgreSQL transactions, React UI, Docker/Nginx configuration, automated tests, and documentation.
+
+During review, Codex found that this file previously claimed backend tests had not run, while the checked-in Docker TRX report recorded all four tests passing on 2026-11-10. The report's four passed outcomes were checked and the inaccurate statement was removed. Codex also found and corrected broken quotation encoding in `ASSUMPTIONS.md`, and moved the student identity form above the hero so it appears at the top of the page as required.
