@@ -17,6 +17,14 @@ app.UseCors();
 app.Use(async (context, next) =>
 {
     try { await next(); }
+    catch (BadHttpRequestException)
+    {
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsJsonAsync(new { message = "The request body or parameters are invalid." });
+        }
+    }
     catch (NpgsqlException)
     {
         app.Logger.LogError("Database request failed for {Path}", context.Request.Path);
@@ -111,14 +119,14 @@ app.MapPost("/holds/{id}/confirm", async (string id, HttpRequest request) =>
     var classId = await LookupClass(connection, transaction, id);
     if (classId is null) return (IResult)Results.NotFound(new { message = "Application not found." });
     await LockClass(connection, transaction, classId);
-    await using var query = new NpgsqlCommand("SELECT student_id,status,expires_at FROM holds WHERE id=@id FOR UPDATE", connection, transaction);
+    await using var query = new NpgsqlCommand("SELECT student_id,status,(expires_at>now()) FROM holds WHERE id=@id FOR UPDATE", connection, transaction);
     query.Parameters.AddWithValue("id", id);
     await using var reader = await query.ExecuteReaderAsync();
     if (!await reader.ReadAsync()) return (IResult)Results.NotFound(new { message = "Application not found." });
-    var owner = reader.GetString(0).Trim(); var status = reader.GetString(1); var expiry = reader.GetDateTime(2); await reader.CloseAsync();
+    var owner = reader.GetString(0).Trim(); var status = reader.GetString(1); var isLive = reader.GetBoolean(2); await reader.CloseAsync();
     if (owner != student) return (IResult)Results.Json(new { message = "This application belongs to another student." }, statusCode: 403);
     if (status == "CONFIRMED") return (IResult)Results.Ok(new { holdId = id, status });
-    if (status != "HELD" || expiry <= DateTime.UtcNow) return (IResult)Results.Conflict(new { message = "This hold has expired or is no longer active." });
+    if (status != "HELD" || !isLive) return (IResult)Results.Conflict(new { message = "This hold has expired or is no longer active." });
     await using var confirm = new NpgsqlCommand("UPDATE holds SET status='CONFIRMED',payment_status='PAID',payment_verified_at=now() WHERE id=@id", connection, transaction);
     confirm.Parameters.AddWithValue("id", id); await confirm.ExecuteNonQueryAsync();
     await transaction.CommitAsync();

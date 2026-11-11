@@ -31,7 +31,7 @@ The student's name is stored with the hold for display. The registration number 
 
 ## Tests
 
-The backend integration suite has four tests: new-class seat counts, duplicate applications, non-ASCII registration IDs, and simultaneous seat allocation. The concurrency test sends 30 requests at once for a class with 5 seats and verifies exactly 5 holds are created, the other 25 requests are rejected, and the final seat count is not oversubscribed.
+The backend integration suite has nine tests covering initial seat counts, duplicate applications, invalid registration IDs, class details and JSON, confirmation ownership and idempotency, cancellation, and simultaneous seat allocation. The concurrency test sends 30 requests at once for a class with 5 seats and verifies exactly 5 holds are created, the other 25 requests are rejected, and the final seat count is not oversubscribed.
 
 Run the suite from the repository root. Docker Compose starts PostgreSQL, builds the test runner, and writes a TRX test report to `artifacts/test-results/admission-tests.trx`:
 
@@ -39,7 +39,7 @@ Run the suite from the repository root. Docker Compose starts PostgreSQL, builds
 docker compose --profile test run --build --rm backend-tests
 ```
 
-Test source: `backend/tests/Admission.Tests/ApiTests.cs`. The latest validated run is summarized in [TEST_REPORT.md](TEST_REPORT.md). GitHub Actions runs this same Docker command on pushes and pull requests, then publishes the TRX report as the `backend-test-report` workflow artifact.
+Test source: `backend/tests/Admission.Tests/ApiTests.cs`. [TEST_REPORT.md](TEST_REPORT.md) records the last completed Docker run; run the command above to execute the current suite and regenerate the report. GitHub Actions runs this same Docker command on pushes and pull requests, then publishes the TRX report as the `backend-test-report` workflow artifact.
 
 For a local frontend production build: `cd frontend && npm ci && npm run build`.
 

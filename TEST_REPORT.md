@@ -8,6 +8,8 @@
 
 **Evidence:** `artifacts/test-results/admission-tests.trx`
 
+This archived report covers the four-test suite as it existed on the execution date. The suite now has eight tests; run the command below to regenerate a report for the current suite.
+
 | Test | Result |
 | --- | --- |
 | `NewClassStartsWithAllSeatsAvailable` | Passed |
