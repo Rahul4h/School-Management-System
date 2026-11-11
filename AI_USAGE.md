@@ -1,7 +1,11 @@
-# AI usage
+# AI Assistance and Instructor Review
 
-OpenAI Codex assisted with the .NET API and PostgreSQL transactions, React admissions and administrator screens, Docker configuration, tests, and documentation.
+OpenAI Codex assisted with implementation and documentation for the .NET API, PostgreSQL persistence and transactions, React student and administrator interfaces, Docker configuration, and automated tests.
 
-During review, Codex found that earlier documentation did not match the checked-in test evidence. It corrected the report and added regression tests for invalid requests, hold ownership and idempotency, cancellation, and the administrator workflow. It also implemented invite-key registration and password login for administrators, protected class creation and capacity changes, and a confirmed-student registration list.
+During my review of the AI-assisted work, I identified two issues that required correction:
 
-Codex initially misdiagnosed a Docker CLI permission restriction as an engine problem. An elevated Docker check showed the engine was running; the app was then built and started successfully. A separate first image build could not reach NuGet from the restricted shell; rerunning with approved network access completed the build. The frontend production build and Docker app health checks succeeded, and the backend integration suite passed all 13 tests (including the concurrent allocation test) on 2026-11-11. The concurrency result and admin flows were checked by automated tests; API and UI source were also reviewed against the assignment requirements.
+- The AI initially validated student registration numbers using Unicode-aware numeric matching. I identified that the assignment requires exactly 17 ASCII digits (`0`–`9`), and had the validation corrected to reject Unicode digit characters.
+- I also found that a failed confirmation or cancellation could have its user-facing error cleared by the subsequent successful data refresh. I directed the AI to preserve and display the action error after refreshing the application data.
+
+These findings were identified by me as the instructor during review, and I  correct them. The corrections are reflected in the current source code.
+
