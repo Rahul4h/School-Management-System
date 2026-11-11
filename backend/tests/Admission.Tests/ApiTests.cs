@@ -11,10 +11,12 @@ public sealed class ApiTests : IDisposable
             "DATABASE_URL",
             Environment.GetEnvironmentVariable("DATABASE_URL")
                 ?? "Host=db;Port=5432;Database=admission;Username=admission;Password=admission");
+        Environment.SetEnvironmentVariable("ADMIN_REGISTRATION_KEY", "local-school-admin-key");
     }
 
     private readonly WebApplicationFactory<Program> _factory = new();
     private readonly HttpClient _client;
+    private Task? _adminSetup;
 
     public ApiTests() => _client = _factory.CreateClient();
 
@@ -26,11 +28,26 @@ public sealed class ApiTests : IDisposable
 
     private async Task<string> NewClass(int seats)
     {
+        await EnsureAdmin();
         var response = await _client.PostAsJsonAsync(
             "/classes",
             new { name = $"Class 6 Morning {Guid.NewGuid():N}", totalSeats = seats });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         return (await response.Content.ReadFromJsonAsync<ClassDto>())!.Id;
+    }
+
+    private Task EnsureAdmin() => _adminSetup ??= RegisterAdmin();
+
+    private async Task RegisterAdmin()
+    {
+        var username = $"test{Guid.NewGuid():N}";
+        using var response = await _client.PostAsJsonAsync("/admin/register", new
+        {
+            userName = username,
+            password = "test-password-12345",
+            registrationKey = "local-school-admin-key"
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
     private static HttpRequestMessage Hold(string classId, string studentId)
@@ -91,11 +108,76 @@ public sealed class ApiTests : IDisposable
     [Fact]
     public async Task InvalidClassDetailsReturnBadRequest()
     {
+        await EnsureAdmin();
         using var response = await _client.PostAsJsonAsync(
             "/classes",
             new { name = "  ", totalSeats = 0 });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminRegistrationLoginAndLogoutManageSession()
+    {
+        var username = $"admin{Guid.NewGuid():N}";
+        const string password = "strong-admin-password-123";
+        using var register = await _client.PostAsJsonAsync("/admin/register", new
+        {
+            userName = username,
+            password,
+            registrationKey = "local-school-admin-key"
+        });
+        Assert.Equal(HttpStatusCode.Created, register.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/admin/me")).StatusCode);
+
+        using var logout = await _client.PostAsync("/admin/logout", null);
+        Assert.Equal(HttpStatusCode.OK, logout.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _client.GetAsync("/admin/me")).StatusCode);
+
+        using var login = await _client.PostAsJsonAsync("/admin/login", new { userName = username, password });
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/admin/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task ClassCreationRequiresAnAdminSession()
+    {
+        using var response = await _client.PostAsJsonAsync("/classes", new { name = "Class 6 – Morning Shift", totalSeats = 10 });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminCannotLowerCapacityBelowHeldSeats()
+    {
+        var classId = await NewClass(2);
+        using var first = Hold(classId, "20152691234567895");
+        using var second = Hold(classId, "20152691234567896");
+        Assert.Equal(HttpStatusCode.Created, (await _client.SendAsync(first)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await _client.SendAsync(second)).StatusCode);
+
+        using var response = await _client.PutAsJsonAsync($"/classes/{classId}/capacity", new { totalSeats = 1 });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminCanSeeConfirmedStudentRegistrationNumbers()
+    {
+        const string studentId = "20152691234567897";
+        var classId = await NewClass(1);
+        using var holdRequest = Hold(classId, studentId);
+        using var holdResponse = await _client.SendAsync(holdRequest);
+        Assert.Equal(HttpStatusCode.Created, holdResponse.StatusCode);
+        var hold = (await holdResponse.Content.ReadFromJsonAsync<HoldDto>())!;
+        using var confirmRequest = Confirm(hold.HoldId, studentId);
+        using var confirmResponse = await _client.SendAsync(confirmRequest);
+        Assert.Equal(HttpStatusCode.OK, confirmResponse.StatusCode);
+
+        var students = await _client.GetFromJsonAsync<List<AdminStudentDto>>($"/admin/classes/{classId}/students");
+
+        var admittedStudent = Assert.Single(students!);
+        Assert.Equal(studentId, admittedStudent.StudentId);
     }
 
     [Fact]
@@ -188,5 +270,6 @@ public sealed class ApiTests : IDisposable
 
     private sealed record ClassDto(string Id, string Name, int TotalSeats);
     private sealed record HoldDto(string HoldId);
+    private sealed record AdminStudentDto(string HoldId, string StudentId, string StudentName, DateTime? ConfirmedAt);
     private sealed record Seats(string Id, string Name, int TotalSeats, int HeldSeats, int ConfirmedSeats, int AvailableSeats);
 }

@@ -1,7 +1,8 @@
 # Assumptions
 
 - Each grade and shift combination is a separate class record, with its own name and seat capacity (for example, `Class 6 – Morning Shift`). This matches the API, which models shifts as classes.
-- No separate administrator login or role model is specified. The prototype therefore exposes class creation in the UI without authentication; adding real school administration requires an authorization policy.
+- The brief asks school admins to create classes but does not define an admin identity flow. Admin registration is therefore gated by the `ADMIN_REGISTRATION_KEY` invite configured in Docker, while username/password login creates a 12-hour HttpOnly session. This keeps the registration screen usable without allowing unrestricted visitor sign-up.
+- Admin passwords are salted and hashed with PBKDF2-SHA256; the database stores only hashes and hashed session tokens. The local default invite key is for assignment review only and should be replaced in `.env` before sharing the running app.
 - The student registration number is exactly 17 ASCII digits. Login is out of scope; the UI stores the number locally and sends it as `X-Student-Id`.
 - A student name is collected for display and sent as the optional `X-Student-Name` header. The registration number remains the application identity.
 - New seat holds last `HOLD_DURATION_SECONDS` (600 seconds by default). PostgreSQL time determines expiry; reads and capacity checks free elapsed holds immediately, and a worker persists the `EXPIRED` status.

@@ -1,0 +1,10 @@
+.git
+.github
+**/node_modules
+**/bin
+**/obj
+**/dist
+artifacts
+.env
+.env.*
+!.env.example

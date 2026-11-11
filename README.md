@@ -19,6 +19,8 @@ Compose builds the images automatically on first start; use `docker compose up -
 - `HOLD_DURATION_SECONDS`: hold period, default `600`.
 - `FRONTEND_ORIGIN`: allowed browser origin, default `http://localhost:5173`.
 - `VITE_API_BASE_URL`: API URL embedded in the frontend build, default `http://localhost:8080`. Rebuild after changing it.
+- `ADMIN_REGISTRATION_KEY`: invite key required to register school administrators; local default is `local-school-admin-key`. Set a private value in `.env` before sharing the app.
+- `ADMIN_COOKIE_SECURE`: set `true` when serving over HTTPS; keep `false` for the default local HTTP setup.
 
 ## Admission flow
 
@@ -29,9 +31,13 @@ Compose builds the images automatically on first start; use `docker compose up -
 
 The student's name is stored with the hold for display. The registration number remains the API identity header `X-Student-Id`; login is out of scope per the assignment.
 
+## School admin panel
+
+Choose **School admin** in the top bar. Register an administrator using a username, a password of at least 12 characters, and `ADMIN_REGISTRATION_KEY`; subsequent visits can sign in with that username and password. The admin panel can create a named class/shift with its own seat capacity, update capacity without going below held or confirmed seats, and view confirmed students' names and registration numbers. Class creation, capacity changes, and student lists require an administrator session. Sessions expire after 12 hours.
+
 ## Tests
 
-The backend integration suite has nine tests covering initial seat counts, duplicate applications, invalid registration IDs, class details and JSON, confirmation ownership and idempotency, cancellation, and simultaneous seat allocation. The concurrency test sends 30 requests at once for a class with 5 seats and verifies exactly 5 holds are created, the other 25 requests are rejected, and the final seat count is not oversubscribed.
+The backend integration suite has thirteen tests covering admin registration/login/logout and authorization, capacity safeguards and student roster access, initial seat counts, duplicate applications, invalid registration IDs, class details and JSON, confirmation ownership and idempotency, cancellation, and simultaneous seat allocation. The concurrency test sends 30 requests at once for a class with 5 seats and verifies exactly 5 holds are created, the other 25 requests are rejected, and the final seat count is not oversubscribed.
 
 Run the suite from the repository root. Docker Compose starts PostgreSQL, builds the test runner, and writes a TRX test report to `artifacts/test-results/admission-tests.trx`:
 
